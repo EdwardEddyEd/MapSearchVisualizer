@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+html {
+  color-scheme: light dark;
+}
+* {
+  @apply border-gray-200 dark:border-gray-800;
+}
+body {
+  @apply bg-gray-50 text-gray-950 dark:bg-gray-900 dark:text-gray-200;
+}
+
+/* .glow-line {
+  filter: url(#glow);
+  stroke-width: 4;
+  stroke-opacity: 0.9;
+  transition: stroke-width 0.3s ease-out;
+}
+
+.glow-line:not(:hover) {
+  filter: none;
+  stroke-width: 3;
+  stroke-opacity: 0.7;
+} */
+
+@keyframes glowVisited {
+  0% {
+    filter: url(#glow);
+    stroke-width: 4;
+    stroke-opacity: 0.9;
+  }
+  100% {
+    filter: none;
+    stroke-width: 2;
+    stroke-opacity: 0.7;
+  }
+}
+
+.glow-visited {
+  animation: glowVisited 4s ease-out forwards;
+}
