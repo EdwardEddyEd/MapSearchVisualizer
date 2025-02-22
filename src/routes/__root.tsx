@@ -35,6 +35,14 @@ function RootComponent() {
         >
           Map
         </Link>
+        <Link
+          to="/mapgl"
+          activeProps={{
+            className: "font-bold",
+          }}
+        >
+          MapGL
+        </Link>
       </div>
       <hr />
       <Outlet />

@@ -11,11 +11,18 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
+import { Route as MapglImport } from './routes/mapgl'
 import { Route as MapImport } from './routes/map'
 import { Route as AboutImport } from './routes/about'
 import { Route as IndexImport } from './routes/index'
 
 // Create/Update Routes
+
+const MapglRoute = MapglImport.update({
+  id: '/mapgl',
+  path: '/mapgl',
+  getParentRoute: () => rootRoute,
+} as any)
 
 const MapRoute = MapImport.update({
   id: '/map',
@@ -60,6 +67,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MapImport
       parentRoute: typeof rootRoute
     }
+    '/mapgl': {
+      id: '/mapgl'
+      path: '/mapgl'
+      fullPath: '/mapgl'
+      preLoaderRoute: typeof MapglImport
+      parentRoute: typeof rootRoute
+    }
   }
 }
 
@@ -69,12 +83,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/map': typeof MapRoute
+  '/mapgl': typeof MapglRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/map': typeof MapRoute
+  '/mapgl': typeof MapglRoute
 }
 
 export interface FileRoutesById {
@@ -82,14 +98,15 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/map': typeof MapRoute
+  '/mapgl': typeof MapglRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/map'
+  fullPaths: '/' | '/about' | '/map' | '/mapgl'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/map'
-  id: '__root__' | '/' | '/about' | '/map'
+  to: '/' | '/about' | '/map' | '/mapgl'
+  id: '__root__' | '/' | '/about' | '/map' | '/mapgl'
   fileRoutesById: FileRoutesById
 }
 
@@ -97,12 +114,14 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   MapRoute: typeof MapRoute
+  MapglRoute: typeof MapglRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   MapRoute: MapRoute,
+  MapglRoute: MapglRoute,
 }
 
 export const routeTree = rootRoute
@@ -117,7 +136,8 @@ export const routeTree = rootRoute
       "children": [
         "/",
         "/about",
-        "/map"
+        "/map",
+        "/mapgl"
       ]
     },
     "/": {
@@ -128,6 +148,9 @@ export const routeTree = rootRoute
     },
     "/map": {
       "filePath": "map.tsx"
+    },
+    "/mapgl": {
+      "filePath": "mapgl.tsx"
     }
   }
 }

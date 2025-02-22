@@ -1,7 +1,7 @@
 import { Way, Node } from "../components/graph/Graph";
 
 const OVERPASS_API_URL = "https://overpass-api.de/api/interpreter";
-const BBOX_LIMIT = 0.05;
+const BBOX_LIMIT = 0.5;
 
 /**
  * Function to fetch roads from Overpass API
@@ -28,7 +28,7 @@ export async function fetchOSMRoads(
 
   const query = `
       [out:json];
-      way["highway"]["highway"!~"cycleway|footway|pedestrian"](${latMin},${lonMin},${latMax},${lonMax});
+      way["highway"]["highway"~"motorway|trunk|primary|secondary|tertiary|residential"](${latMin},${lonMin},${latMax},${lonMax});
       out geom;
   `;
 

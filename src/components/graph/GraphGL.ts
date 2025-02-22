@@ -14,15 +14,29 @@ export type Way = {
   tags: Record<string, string>;
 };
 
+export type CoordsGL = [number, number];
+
+// A way to represent the segment of lines to edges for WebGL
+export type WayGL = {
+  wayId: WayId; // Id of the way this line belongs to
+  to: CoordsGL;
+  from: CoordsGL;
+  color: [number, number, number];
+};
+
 export class Graph {
   vertices: Map<NodeId, Node>; // Key = Node.id, Value = Node
   edges: Map<WayId, Way>; // Key = Way.id, Value = Way
   graph: Map<NodeId, [NodeId, WayId][]>; // Key = Node.id of the starting vertex, Value = [Neighbor/End vertex Node.id, Connecting Edge Way.id]
+  edgesGL: WayGL[];
 
-  constructor() {
+  constructor(unprocRoads: Way[]) {
     this.vertices = new Map<NodeId, Node>();
     this.edges = new Map<WayId, Way>();
     this.graph = new Map<NodeId, [NodeId, WayId][]>();
+    this.edgesGL = [];
+
+    this.generateGraph(unprocRoads);
   }
 
   /**
@@ -67,11 +81,40 @@ export class Graph {
   }
 
   /**
+   * Break up an edge into it's individual line segments for rendering with WebGL.
+   * @param edge Way - A OpenStreeMaps way, serving as an edge between Vertices
+   * @param segmentId WayId - The way's id the line segment belongs to
+   */
+  addEdgeGL(edge: Way, segmentId: WayId) {
+    edge.nodes.forEach((_, i) => {
+      if (i < edge.nodes.length - 1) {
+        this.edgesGL.push({
+          wayId: segmentId,
+          from: [edge.nodes[i].lng, edge.nodes[i].lat],
+          to: [edge.nodes[i + 1].lng, edge.nodes[i + 1].lat],
+          color: [0, 0, 0],
+        });
+      }
+    });
+  }
+
+  /**
    * Return all edges from the graph
    * @returns An array of Ways
    */
   getAllEdges(): Way[] {
     return Array.from(this.edges).map(([_, way]) => way);
+  }
+
+  /**
+   * Return an array of edges from edge/way ids that are valid
+   * @param edgeIds An array of edge/way ids
+   * @returns An array of edges
+   */
+  getEdgesFromIds(edgeIds: WayId[]): Way[] {
+    return edgeIds
+      .map((edgeId) => this.edges.get(edgeId))
+      .filter((edge) => edge !== undefined);
   }
 
   /**
@@ -146,19 +189,23 @@ export class Graph {
     ways.forEach((way) => {
       let startVertex: Node = way.nodes[0];
       let segment: Node[] = [];
+      let segmentId = `seg_${segmentCount}`;
 
       way.nodes.forEach((node) => {
         segment.push(node);
 
         if (intersectionNodesIds.has(node.id) && segment.length > 1) {
           const completedSegment = {
-            id: `seg_${segmentCount++}`,
+            id: segmentId,
             nodes: segment,
             tags: way.tags,
           };
           this.addEdge(completedSegment, startVertex, node);
+          this.addEdgeGL(completedSegment, segmentId);
 
           // Reset the start of the new segment/edge
+          segmentCount++;
+          segmentId = `seg_${segmentCount}`;
           segment = [node];
           startVertex = node;
         }
@@ -166,7 +213,7 @@ export class Graph {
 
       if (segment.length > 1) {
         const completedSegment = {
-          id: `seg_${segmentCount++}`,
+          id: segmentId,
           nodes: segment,
           tags: way.tags,
         };
@@ -175,6 +222,10 @@ export class Graph {
           startVertex,
           segment[segment.length - 1]
         );
+        this.addEdgeGL(completedSegment, segmentId);
+
+        segmentCount++;
+        segmentId = `seg_${segmentCount}`;
       }
     });
 

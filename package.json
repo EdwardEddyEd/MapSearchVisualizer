@@ -26,11 +26,15 @@
     "@tailwindcss/vite": "^4.0.5",
     "@tanstack/react-router": "^1.102.1",
     "@tanstack/router-devtools": "^1.102.1",
+    "deck.gl": "^9.1.3",
+    "heap-js": "^2.6.0",
     "leaflet": "^1.9.4",
+    "maplibre-gl": "^5.1.1",
     "react": "^19.0.0-rc.1",
     "react-dom": "^19.0.0-rc.1",
     "react-full-screen": "^1.1.1",
     "react-leaflet": "^5.0.0-rc.2",
+    "react-map-gl": "^8.0.1",
     "tailwindcss": "^4.0.5"
   }
 }
