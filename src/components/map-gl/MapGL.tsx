@@ -115,7 +115,7 @@ export function MapGL() {
 
   const [fps, setFps] = useState(120);
 
-  const { state: searchState, iterate: searchIterate } = useBFS(
+  const { state: searchState, iterate: searchIterate } = useAStar(
     graph,
     startNode,
     endNode

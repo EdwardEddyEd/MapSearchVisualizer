@@ -32,6 +32,7 @@ function RootComponent() {
           activeProps={{
             className: "font-bold",
           }}
+          disabled={true}
         >
           Map
         </Link>
