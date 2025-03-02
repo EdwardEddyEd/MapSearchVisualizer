@@ -1,9 +1,19 @@
 {
   "references": [],
   "compilerOptions": {
-    "baseUrl": ".",
+    "baseUrl": "./src",
     "paths": {
-      "@/*": ["./src/*"]
+      "@api/*": ["api/*"],
+      "@classes/*": ["classes/*"],
+      "@components/*": ["components/*"],
+      "@components": ["components/index"],
+      "@contexts/*": ["contexts/*"],
+      "@contexts": ["contexts/index"],
+      "@hooks/*": ["hooks/*"],
+      "@hooks": ["hooks/index"],
+      "@pages/*": ["pages/*"],
+      "@utils/*": ["utils/*"],
+      "@/*": ["./*"]
     },
     "strict": true,
     "esModuleInterop": true,

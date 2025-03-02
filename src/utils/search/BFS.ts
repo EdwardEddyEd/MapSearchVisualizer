@@ -1,4 +1,4 @@
-import { Graph, Node, WayId } from "../../components/graph/Graph";
+import { Graph, Node, WayId } from "@classes/graph/Graph";
 
 type FutureNode = {
   nodeId: number;

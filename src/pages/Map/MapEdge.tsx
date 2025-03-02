@@ -1,9 +1,10 @@
-import { Polyline, Popup } from "react-leaflet";
-import type { Polyline as LeafletPolyline } from "leaflet";
-import { useRef, useEffect } from "react";
-import { Way } from "../graph/Graph";
 import React from "react";
-import { lerpColor } from "../../util/colorUtils";
+import { useRef, useEffect } from "react";
+import type { Polyline as LeafletPolyline } from "leaflet";
+import { Polyline } from "react-leaflet";
+
+import { Way } from "@classes/graph/Graph";
+import { lerpColor } from "@utils/colorUtils";
 
 type MapEdgeProps = {
   edge: Way;

@@ -1,9 +1,6 @@
-import { MapContainer, TileLayer } from "react-leaflet";
 import { useState, useMemo, useRef, useCallback } from "react";
 import { useFullScreenHandle, FullScreen } from "react-full-screen";
-import { Way, Graph, Node, WayId, NodeId } from "../graph/Graph";
-import { MapButton } from "./MapButton";
-import { fetchOSMRoads } from "../../api/osmFetch";
+import { MapContainer, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
@@ -13,16 +10,20 @@ import ShowChartIcon from "@mui/icons-material/ShowChart";
 import AddRoadIcon from "@mui/icons-material/AddRoad";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import LocationOffIcon from "@mui/icons-material/LocationOff";
-import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
-import { randomColor } from "../../util/colorUtils";
+
+import { MapButton } from "./MapButton";
+import { MapEdge } from "./MapEdge";
+import { MapNode } from "./MapNode";
 import { MapPosition } from "./MapPosition";
 import { MapSearch } from "./MapSearch";
-import { BFS } from "../../util/search/BFS";
-import { MapNode } from "./MapNode";
-import { MapEdge } from "./MapEdge";
-import { useAnimationLoop } from "../../hooks/useAnimationLoop";
+
+import { fetchOSMRoads } from "@api/osmFetch";
+import { Way, Graph, Node, WayId, NodeId } from "@classes/graph/Graph";
+import { useAnimationLoop } from "@hooks";
+import { randomColor } from "@utils/colorUtils";
+import { BFS } from "@utils/search/BFS";
 
 const DEFAULT_ZOOM = 15;
 const DEFAULT_CENTER = { lat: 30.2672, lng: -97.7431 };
@@ -168,19 +169,11 @@ export function Map({
         hoverText={mapVisible ? "Hide map" : "Show map"}
       />
       {searchRef.current && (
-        <>
-          <MapButton
-            onClick={memoPause}
-            icon={pauseIcon}
-            hoverText={paused ? "Unpause" : "Pause"}
-          />
-
-          <MapButton
-            onClick={step}
-            icon={<ArrowForwardIcon style={{ color: "black" }} />}
-            hoverText="Explore next step"
-          />
-        </>
+        <MapButton
+          onClick={memoPause}
+          icon={pauseIcon}
+          hoverText={paused ? "Unpause" : "Pause"}
+        />
       )}
     </div>
   );

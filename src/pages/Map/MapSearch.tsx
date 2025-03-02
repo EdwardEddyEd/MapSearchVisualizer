@@ -1,4 +1,4 @@
-import { Node } from "../graph/Graph";
+import { Node } from "@classes/graph/Graph";
 
 type MapSearchProps = {
   startPoint?: Node;

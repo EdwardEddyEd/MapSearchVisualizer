@@ -1,7 +1,6 @@
-import * as React from "react";
 import { Link, Outlet, createRootRoute } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
-import ThemeToggle from "../components/ThemeToggle/ThemeToggle";
+import { ThemeToggle } from "@components/ThemeToggle/ThemeToggle";
 
 export const Route = createRootRoute({
   component: RootComponent,

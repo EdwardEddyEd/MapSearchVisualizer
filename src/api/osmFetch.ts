@@ -1,4 +1,4 @@
-import { Way, Node } from "../components/graph/Graph";
+import { Way, Node } from "@classes/graph/GraphGL";
 
 const OVERPASS_API_URL = "https://overpass-api.de/api/interpreter";
 const BBOX_LIMIT = 0.5;

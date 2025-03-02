@@ -1,6 +1,6 @@
 import React from "react";
 import { ReactNode } from "react";
-import { Tooltip, TooltipPositions } from "../Tooltip/Tooltip";
+import { Tooltip, TooltipPositions } from "@components/Tooltip/Tooltip";
 
 type MapGLButtonProps = {
   icon: ReactNode;

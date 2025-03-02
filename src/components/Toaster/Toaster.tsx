@@ -1,4 +1,4 @@
-import { useThemeContext } from "../../contexts";
+import { useThemeContext } from "@contexts";
 import { Toaster as Sonner, ToasterProps, toast } from "sonner";
 
 const Toaster = ({ ...props }: ToasterProps) => {

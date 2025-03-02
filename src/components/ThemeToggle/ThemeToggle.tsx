@@ -1,12 +1,11 @@
-import React from "react";
 import { LightMode, DarkMode } from "@mui/icons-material";
-import { useThemeContext } from "../../contexts";
-import { Tooltip } from "../Tooltip/Tooltip";
+import { useThemeContext } from "@contexts";
+import { Tooltip } from "@components";
 
 const sunIcon = <LightMode fontSize="medium" className="text-yellow-400" />;
 const moonIcon = <DarkMode fontSize="medium" className="text-blue-600" />;
 
-export default function ThemeToggle() {
+export function ThemeToggle() {
   const { darkTheme, setToDarkTheme, setToLightTheme } = useThemeContext();
 
   const handleOnClick = (darkTheme: boolean) => {

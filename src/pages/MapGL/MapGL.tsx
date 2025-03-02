@@ -1,27 +1,21 @@
-import { PointCloudLayer, PathLayer } from "@deck.gl/layers";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { FullScreen, useFullScreenHandle } from "react-full-screen";
+
 import {
   COORDINATE_SYSTEM,
   Position,
   DeckProps,
   PickingInfo,
 } from "@deck.gl/core";
+import { PointCloudLayer, PathLayer } from "@deck.gl/layers";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import {
   Map,
   useControl,
   NavigationControl,
   MapRef,
-  MapProvider,
 } from "react-map-gl/maplibre";
-import { Graph, Way, Node } from "../graph/GraphGL";
-import { useCallback, useMemo, useRef, useState } from "react";
-import { useAnimationLoop } from "../../hooks/useAnimationLoop";
-import { FullScreen, useFullScreenHandle } from "react-full-screen";
-import { useAStar } from "../../util/searchGL/useAStar";
-import { useBFS } from "../../util/searchGL/useBFS";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { MapGLControlContainer } from "./MapGLControlContainer";
-import { MapGLButton } from "./MapGLButton";
 
 import {
   Fullscreen as FullScreenIcon,
@@ -32,18 +26,32 @@ import {
   PublicOff,
   AddRoad,
 } from "@mui/icons-material";
+
+import { MapGLButton } from "./MapGLButton";
+import { MapGLControlContainer } from "./MapGLControlContainer";
+import { MapGLDrawerController } from "./MapGLDrawerController";
+import { MapGLFPSControl } from "./MapGLFPSControl";
+import { MapGLMemoryControl } from "./MapGLMemoryControl";
+
+import { fetchOSMRoads } from "@api/osmFetch";
+import { Graph, Way, Node } from "@classes/graph/GraphGL";
+import {
+  Toaster,
+  toast,
+  Modal,
+  closeModal,
+  openModal,
+  Range,
+} from "@components";
+import { useAnimationLoop } from "@hooks/useAnimationLoop";
+
 import {
   convertHexStringToRGBArray,
   lerpColorToRGBArray,
   multiRGBArray,
-} from "../../util/colorUtils";
-import { fetchOSMRoads } from "../../api/osmFetch";
-import { MapGLFPSControl } from "./MapGLFPSControl";
-import { MapGLMemoryControl } from "./MapGLMemoryControl";
-import { Toaster, toast } from "../Sonner/sonner";
-import { closeModal, Modal, openModal } from "../Modal/Modal";
-import { MapGLDrawerController } from "./MapGLDrawerController";
-import { Range } from "../Range/Range";
+} from "@utils/colorUtils";
+import { useAStar } from "@utils/searchGL/useAStar";
+import { useBFS } from "@utils/searchGL/useBFS";
 
 const initialViewState = {
   latitude: 30.2672,

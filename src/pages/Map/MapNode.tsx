@@ -1,8 +1,8 @@
-import { CircleMarker, Popup } from "react-leaflet";
-import type { CircleMarker as LeafletCircleMarker } from "leaflet";
-import { Node, Graph } from "../graph/Graph";
-import { useEffect, useRef } from "react";
 import React from "react";
+import { useEffect, useRef } from "react";
+import type { CircleMarker as LeafletCircleMarker } from "leaflet";
+import { CircleMarker } from "react-leaflet";
+import { Node } from "@classes/graph/Graph";
 
 type MapNodeProps = {
   node: Node;

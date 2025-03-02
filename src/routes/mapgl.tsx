@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { MapGL } from "../components/map-gl/MapGL";
+import { MapGL } from "@pages/MapGL/MapGL";
 
 export const Route = createFileRoute("/mapgl")({
   component: MapGLComponent,
