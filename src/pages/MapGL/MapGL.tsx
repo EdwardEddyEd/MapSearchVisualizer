@@ -52,6 +52,10 @@ import {
 } from "@utils/colorUtils";
 import { useAStar } from "@utils/searchGL/useAStar";
 import { useBFS } from "@utils/searchGL/useBFS";
+import {
+  MapSearchActionType,
+  useMapSearchState,
+} from "@contexts/MapSearchContext";
 
 const initialViewState = {
   latitude: 30.2672,
@@ -70,6 +74,7 @@ function DeckGLOverlay(props: DeckProps) {
 export function MapGL() {
   const mapRef = useRef<MapRef>(undefined);
   const [mapZoom, setMapZoom] = useState<number>(initialViewState.zoom);
+  const { state, dispatch } = useMapSearchState();
 
   // #region Map Container Button Memo
   // Fullscreen Memo
@@ -84,36 +89,31 @@ export function MapGL() {
   );
 
   // Map Visible Memo
-  const [mapVisible, setMapVisible] = useState<boolean>(true);
   const mapVisibleIcon = useMemo(
-    () => (mapVisible ? <Public /> : <PublicOff />),
-    [mapVisible]
+    () => (state.isMapVisible ? <Public /> : <PublicOff />),
+    [state.isMapVisible]
   );
   const setMapVisibleCallback = useCallback(
-    () => setMapVisible((mapVisible) => !mapVisible),
+    () => dispatch({ type: MapSearchActionType.TOGGLE_MAP_VISIBILITY }),
     []
   );
 
   // Pause Graph Search Memo
-  const [paused, setPaused] = useState(true);
   const pauseIcon = useMemo(
-    () => (paused ? <Pause /> : <PlayArrow />),
-    [paused]
+    () => (state.isPaused ? <Pause /> : <PlayArrow />),
+    [state.isPaused]
   );
   const setPauseCallback = useCallback(
-    () => setPaused((paused) => !paused),
+    () => dispatch({ type: MapSearchActionType.TOGGLE_PAUSE }),
     []
   );
 
-  const [loadingGraph, setLoadingGraph] = useState<boolean>(false);
-  const [graph, setGraph] = useState<Graph>(new Graph([]));
-  const [startNode, setStartNode] = useState<Node>({ id: -1, lng: 0, lat: 0 });
-  const [endNode, setEndNode] = useState<Node>({ id: -1, lng: 0, lat: 0 });
   const addGraphIcon = useMemo(() => <AddRoad />, []);
   const setGraphCallback = useCallback(async () => {
     if (mapRef.current) {
-      setLoadingGraph(true);
+      dispatch({ type: MapSearchActionType.SET_LOADING_GRAPH, payload: true });
       openModal("loadingMapModal");
+
       fetchOSMRoads(
         mapRef.current.getBounds().getSouth(),
         mapRef.current.getBounds().getWest(),
@@ -121,44 +121,48 @@ export function MapGL() {
         mapRef.current.getBounds().getEast()
       )
         .then((data) => {
-          graph.clearGraph();
-          setGraph(new Graph(data));
-          setStartNode({ id: -1, lng: 0, lat: 0 });
-          setEndNode({ id: -1, lng: 0, lat: 0 });
+          dispatch({
+            type: MapSearchActionType.GRAPH_LOADED,
+            payload: {
+              graph: new Graph(data),
+              startNode: { id: -1, lng: 0, lat: 0 },
+              endNode: { id: -1, lng: 0, lat: 0 },
+            },
+          });
           toast.success("Map loaded", {
             description: "Roadways have been added",
             position: "top-center",
           });
         })
-        .catch((error) =>
+        .catch((error) => {
+          dispatch({
+            type: MapSearchActionType.SET_LOADING_GRAPH,
+            payload: false,
+          });
           toast.error("Unable to load map", {
             description: error,
             position: "top-center",
-          })
-        )
+          });
+        })
         .finally(() => {
-          setLoadingGraph(false);
           closeModal("loadingMapModal");
         });
     }
   }, []);
   //#endregion
 
-  const [stepsPerFrame, setStepsPerFrame] = useState(10);
-  const [fps, setFps] = useState(120);
-
   const { state: searchState, iterate: searchIterate } = useAStar(
-    graph,
-    startNode,
-    endNode
+    state.graph,
+    state.startNode,
+    state.endNode
   );
 
   const animationCallback = useCallback(() => {
-    if (!paused) searchIterate(stepsPerFrame);
-  }, [searchIterate, stepsPerFrame, paused]);
+    if (!state.isPaused) searchIterate(state.stepsPerFrame);
+  }, [searchIterate, state.stepsPerFrame, state.isPaused]);
   const { lastFrameUnixTimeMS } = useAnimationLoop(animationCallback, {
-    fps,
-    paused,
+    fps: state.fps,
+    paused: state.isPaused,
   });
 
   const getWidth = (scale: number = 1) => {
@@ -169,9 +173,9 @@ export function MapGL() {
     return Math.min(5, Math.abs(16 - mapZoom) + 4) * scale;
   };
 
-  const vertices = useMemo(() => graph.getAllVertices(), [graph]);
+  const vertices = useMemo(() => state.graph.getAllVertices(), [state.graph]);
   const nodesLayer =
-    startNode.id === -1 || endNode.id === -1
+    state.startNode.id === -1 || state.endNode.id === -1
       ? new PointCloudLayer<Node>({
           id: "AllVertices",
           data: vertices,
@@ -185,17 +189,23 @@ export function MapGL() {
             pointSize: [mapZoom],
           },
           onClick: ({ object }: PickingInfo<Node>) => {
-            if (object && startNode.id === -1) {
-              setStartNode(object);
+            if (object && state.startNode.id === -1) {
+              dispatch({
+                type: MapSearchActionType.SET_START_NODE,
+                payload: object,
+              });
               toast.success("Starting point selected", {
                 position: "top-center",
               });
             } else if (
               object &&
-              endNode.id === -1 &&
-              startNode.id !== object.id
+              state.endNode.id === -1 &&
+              state.startNode.id !== object.id
             ) {
-              setEndNode(object);
+              dispatch({
+                type: MapSearchActionType.SET_END_NODE,
+                payload: object,
+              });
               toast.success("Ending point selected", {
                 description:
                   "Searching between the start and end point is enabled",
@@ -207,14 +217,14 @@ export function MapGL() {
       : [];
 
   const startEndVertices = useMemo(
-    () => [startNode, endNode],
-    [startNode, endNode]
+    () => [state.startNode, state.endNode],
+    [state.startNode, state.endNode]
   );
   const startEndNodesLayer = new PointCloudLayer<Node>({
     id: "StartAndEndVertices",
     data: startEndVertices,
     getColor: multiRGBArray(
-      convertHexStringToRGBArray(mapVisible ? "#ff4400" : "#FFFFFF"),
+      convertHexStringToRGBArray(state.isMapVisible ? "#ff4400" : "#FFFFFF"),
       2
     ),
     getPosition: (node) => [node.lng, node.lat, 0],
@@ -225,14 +235,14 @@ export function MapGL() {
     },
   });
 
-  const edges = useMemo(() => graph.getAllEdges(), [graph]);
+  const edges = useMemo(() => state.graph.getAllEdges(), [state.graph]);
   const roadLayer = searchState.visitedEdges
     ? new PathLayer<Way>({
         id: "RoadLayer",
         data: edges,
         getPath: (way) =>
           way.nodes.map((node) => [node.lng, node.lat]) as Position[],
-        opacity: mapVisible ? 0.2 : 1,
+        opacity: state.isMapVisible ? 0.2 : 1,
         getWidth: getWidth(),
         jointRounded: true,
         capRounded: true,
@@ -254,8 +264,8 @@ export function MapGL() {
     : [];
 
   const solutionEdges = useMemo(
-    () => graph.getEdgesFromIds(searchState.solution),
-    [graph, searchState.solution]
+    () => state.graph.getEdgesFromIds(searchState.solution),
+    [state.graph, searchState.solution]
   );
   const solutionLayer =
     searchState.solution.length > 0
@@ -285,11 +295,15 @@ export function MapGL() {
   const handleKeyDown = (e: any) => {
     if (e.key === "f" || e.key === "F") {
       handle.active ? handle.exit() : handle.enter();
-    } else if (e.key === " " && startNode.id !== -1 && endNode.id !== -1) {
+    } else if (
+      e.key === " " &&
+      state.startNode.id !== -1 &&
+      state.endNode.id !== -1
+    ) {
       e.preventDefault();
-      setPaused((paused) => !paused);
+      dispatch({ type: MapSearchActionType.TOGGLE_PAUSE });
     } else if (e.key === "h" || e.key === "H") {
-      setMapVisible((visible) => !visible);
+      dispatch({ type: MapSearchActionType.TOGGLE_MAP_VISIBILITY });
     }
   };
 
@@ -312,7 +326,7 @@ export function MapGL() {
           initialViewState={initialViewState}
           onZoom={(e) => setMapZoom(e.target.getZoom())}
           mapStyle={
-            mapVisible
+            state.isMapVisible
               ? "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
               : undefined
           }
@@ -340,7 +354,9 @@ export function MapGL() {
               <MapGLButton
                 onClick={setMapVisibleCallback}
                 icon={mapVisibleIcon}
-                tooltip={mapVisible ? "Hide map (H)" : "Show map (H)"}
+                debug={true}
+                btnDebugText="Map Vislble BTN"
+                tooltip={state.isMapVisible ? "Hide map (H)" : "Show map (H)"}
                 tooltipPosition="right"
               />
               <MapGLButton
@@ -348,14 +364,18 @@ export function MapGL() {
                 icon={addGraphIcon}
                 tooltip="Get Roadways"
                 tooltipPosition="right"
-                disabled={loadingGraph}
+                disabled={state.isLoadingGraph}
               />
-              {startNode.id !== -1 && endNode.id !== -1 && (
+              {state.startNode.id !== -1 && state.endNode.id !== -1 && (
                 <MapGLButton
                   icon={pauseIcon}
                   tooltip={
-                    paused ? "Play Search (space)" : "Pause Search (space)"
+                    state.isPaused
+                      ? "Play Search (space)"
+                      : "Pause Search (space)"
                   }
+                  debug={true}
+                  btnDebugText="PAYL BTTN"
                   tooltipPosition="right"
                   onClick={setPauseCallback}
                 />
@@ -375,26 +395,36 @@ export function MapGL() {
               <div>
                 <h3 className="font-medium italic">
                   Steps per Frame:{" "}
-                  <span className="font-normal">{stepsPerFrame}</span>
+                  <span className="font-normal">{state.stepsPerFrame}</span>
                 </h3>
                 <Range
-                  value={stepsPerFrame}
+                  value={state.stepsPerFrame}
                   min={1}
                   max={30}
                   step={1}
-                  onChange={(val) => setStepsPerFrame(val)}
+                  onChange={(val) =>
+                    dispatch({
+                      type: MapSearchActionType.SET_STEPS_PER_FRAME,
+                      payload: val,
+                    })
+                  }
                 />
               </div>
               <div>
                 <h3 className="font-medium italic">
-                  Max FPS: <span className="font-normal">{fps}</span>
+                  Max FPS: <span className="font-normal">{state.fps}</span>
                 </h3>
                 <Range
-                  value={fps}
+                  value={state.fps}
                   min={1}
-                  max={120}
+                  max={240}
                   step={1}
-                  onChange={(val) => setFps(val)}
+                  onChange={(val) =>
+                    dispatch({
+                      type: MapSearchActionType.SET_FPS,
+                      payload: val,
+                    })
+                  }
                 />
               </div>
             </div>

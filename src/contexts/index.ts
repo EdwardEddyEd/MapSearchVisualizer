@@ -1,4 +1,14 @@
-import ThemeContextProvider from "./ThemeContext";
-import { useThemeContext } from "./ThemeContext";
+import ThemeContextProvider, { useThemeContext } from "./ThemeContext";
+import {
+  MapSearchProvider,
+  MapSearchActionType,
+  useMapSearchState,
+} from "./MapSearchContext";
 
-export { ThemeContextProvider, useThemeContext };
+export {
+  ThemeContextProvider,
+  useThemeContext,
+  MapSearchProvider,
+  MapSearchActionType,
+  useMapSearchState,
+};
