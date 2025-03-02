@@ -29,6 +29,13 @@ export const convertHexStringToRGBArray = (
   return [r, g, b];
 };
 
+export const multiRGBArray = (
+  color: [number, number, number],
+  multiplier: number
+): [number, number, number] => {
+  return [color[0] * multiplier, color[1] * multiplier, color[2] * multiplier];
+};
+
 export const lerpColorToRGBArray = (
   startColor: string,
   endColor: string,

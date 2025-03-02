@@ -76,7 +76,7 @@ export function Map({
       });
     }
   }, []);
-  const { step } = useAnimationLoop(animationCallback, { fps, paused });
+  useAnimationLoop(animationCallback, { fps, paused });
 
   const memoPause = useCallback(() => {
     setPaused(!paused);
