@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { WayId, Graph, Node, NodeId } from "../../components/graph/GraphGL";
-import { haversine_distance } from "../mapUtils";
+import { WayId, Graph, Node, NodeId } from "@classes/graph/GraphGL";
+import { haversine_distance } from "@utils/mapUtils";
 import { Heap } from "heap-js";
 
 export type PrevConnection = {

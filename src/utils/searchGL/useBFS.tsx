@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { WayId, Graph, Node, NodeId } from "../../components/graph/GraphGL";
+import { WayId, Graph, Node, NodeId } from "@classes/graph/GraphGL";
 
 export type PrevConnection = {
   nodeId: NodeId;

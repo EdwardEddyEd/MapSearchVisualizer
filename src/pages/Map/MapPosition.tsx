@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { clampLongitude } from "../../util/mapUtils";
+import { clampLongitude } from "@utils/mapUtils";
 
 export function MapPosition({ map }: { map: L.Map }) {
   const [position, setPosition] = useState(() => map.getCenter());

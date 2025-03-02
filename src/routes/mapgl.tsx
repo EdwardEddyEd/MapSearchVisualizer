@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { MapGL } from "../components/map-gl/MapGL";
+import { MapGL } from "@pages/MapGL/MapGL";
+import { MapSearchProvider } from "@contexts/MapSearchContext";
 
 export const Route = createFileRoute("/mapgl")({
   component: MapGLComponent,
@@ -7,8 +8,8 @@ export const Route = createFileRoute("/mapgl")({
 
 function MapGLComponent() {
   return (
-    <div>
+    <MapSearchProvider>
       <MapGL />
-    </div>
+    </MapSearchProvider>
   );
 }

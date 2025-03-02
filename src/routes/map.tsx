@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Map } from "../components/map/Map";
+import { Map } from "@pages/Map/Map";
 
 export const Route = createFileRoute("/map")({
   component: MapComponent,

@@ -1,5 +1,3 @@
-import React from "react";
-
 const COLORS = [
   "#e6194B",
   "#3cb44b",
@@ -27,6 +25,13 @@ export const convertHexStringToRGBArray = (
 ): [number, number, number] => {
   const { r, g, b } = parseColor(color);
   return [r, g, b];
+};
+
+export const multiRGBArray = (
+  color: [number, number, number],
+  multiplier: number
+): [number, number, number] => {
+  return [color[0] * multiplier, color[1] * multiplier, color[2] * multiplier];
 };
 
 export const lerpColorToRGBArray = (
