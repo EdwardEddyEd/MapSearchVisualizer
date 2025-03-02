@@ -16,11 +16,9 @@ export const Select = React.memo(function Select<T extends string | number>({
   onChange,
   items,
 }: SelectProps<T>) {
-  console.log("Rerender SELECT");
   return (
     <select
       data-theme="light"
-      defaultValue={defaultValue}
       className="select"
       value={value}
       onChange={(e) => onChange(e.target.value as T)}

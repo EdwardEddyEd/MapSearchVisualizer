@@ -6,6 +6,8 @@ export type Node = {
   lng: number;
 };
 
+export const NullNode: Node = { id: -1, lng: 180, lat: -90 };
+
 export type WayId = number | string;
 
 export type Way = {

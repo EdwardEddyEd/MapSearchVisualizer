@@ -4,6 +4,7 @@ import {
   useMapSearchState,
 } from "@contexts/MapSearchContext";
 import { BASEMAP } from "@deck.gl/carto";
+import { SearchType } from "@utils/searchGL/useGraphSearch";
 
 import { MapGLLeftDrawer } from "./MapGLLeftDrawer/MapGLLeftDrawer";
 import { Range, Select } from "@components";
@@ -19,18 +20,27 @@ import {
   Code,
   CodeOff,
   AddRoad,
+  Refresh,
+  Undo,
 } from "@mui/icons-material";
 import { FullScreenHandle } from "react-full-screen";
 import { MapGLButton } from "./MapGLButton";
 
 type MapGLControlPane = {
   fullscreenHandle: FullScreenHandle;
+  restartSearchCallback: () => void;
   setGraphCallback: () => Promise<void>;
 };
 
 export const MapGLControlPane = React.memo(
-  ({ fullscreenHandle, setGraphCallback }: MapGLControlPane) => {
+  ({
+    fullscreenHandle,
+    restartSearchCallback,
+    setGraphCallback,
+  }: MapGLControlPane) => {
     const { state, dispatch } = useMapSearchState();
+
+    console.log("Control pane rerender");
 
     // Fullscreen Memo
     const fullscreenIcon = useMemo(
@@ -71,6 +81,14 @@ export const MapGLControlPane = React.memo(
       []
     );
 
+    const mapStyleItems = useMemo(
+      () =>
+        Object.keys(BASEMAP).map((key) => ({
+          key,
+          value: key,
+        })),
+      []
+    );
     const setMapStyleCallback = useCallback((value: string | number) => {
       const payload = value as keyof typeof BASEMAP;
       dispatch({
@@ -79,12 +97,38 @@ export const MapGLControlPane = React.memo(
       });
     }, []);
 
+    const searchTypeItems = useMemo(() => {
+      const searchTypes: SearchType[] = ["A*", "BFS"];
+      return searchTypes.map((key) => ({
+        key,
+        value: key,
+      }));
+    }, []);
+    const setSearchTypeCallback = useCallback(
+      (value: string | number) => {
+        const payload = value as SearchType;
+        dispatch({
+          type: MapSearchActionType.SET_SEARCH_TYPE,
+          payload,
+        });
+        restartSearchCallback();
+      },
+      [restartSearchCallback]
+    );
+
+    const setSelectNewStartEndNodeCallback = useCallback(
+      () => dispatch({ type: MapSearchActionType.SELECT_NEW_START_END_NODES }),
+      []
+    );
+    const selectNewStartEndNodeIcon = useMemo(() => <Undo />, []);
+
     const addGraphIcon = useMemo(() => <AddRoad />, []);
+    const restartSearchIcon = useMemo(() => <Refresh />, []);
 
     return (
       <MapGLLeftDrawer>
         <div className="flex flex-col gap-y-2 m-2">
-          <h2 className="text-xl">Map Config</h2>
+          <h2 className="text-xl">Map Controls</h2>
           <div className="flex gap-x-3 items-center">
             <MapGLButton
               icon={fullscreenIcon}
@@ -116,7 +160,6 @@ export const MapGLControlPane = React.memo(
             <MapGLButton
               onClick={setStatsVisibleCallback}
               icon={statsVisibleIcon}
-              disabled={state.isLoadingGraph}
             />
             <h3 className="font-medium text-[14px]">Toggle Stats</h3>
             <div className="flex-1" />
@@ -130,7 +173,7 @@ export const MapGLControlPane = React.memo(
               onClick={setMapVisibleCallback}
               icon={mapVisibleIcon}
               debug={true}
-              btnDebugText="Map Vislble BTN"
+              btnDebugText="Map Visibility Button"
             />
             <h3 className="font-medium text-[14px]">Toggle Map Visibility</h3>
             <div className="flex-1" />
@@ -145,15 +188,12 @@ export const MapGLControlPane = React.memo(
               defaultValue="Pick a map style"
               onChange={setMapStyleCallback}
               value={state.mapStyle}
-              items={Object.keys(BASEMAP).map((key) => ({
-                key,
-                value: key,
-              }))}
+              items={mapStyleItems}
             />
           </div>
 
           <hr />
-          <h2 className="text-xl">Search Control</h2>
+          <h2 className="text-xl">Search Controls</h2>
 
           <div>
             <h3 className="font-medium italic">
@@ -191,11 +231,21 @@ export const MapGLControlPane = React.memo(
             />
           </div>
 
+          <div className="flex flex-col gap-y">
+            <h3 className="font-medium italic">Search Type</h3>
+            <Select
+              defaultValue="Pick a search algorithm"
+              onChange={setSearchTypeCallback}
+              value={state.searchType}
+              items={searchTypeItems}
+            />
+          </div>
+
           <div className="flex gap-x-3 items-center">
             <MapGLButton
               icon={pauseIcon}
               debug={true}
-              btnDebugText="PAYL BTTN"
+              btnDebugText="Play Search Button"
               onClick={setPauseCallback}
               disabled={state.startNode.id === -1 || state.endNode.id === -1}
             />
@@ -205,6 +255,34 @@ export const MapGLControlPane = React.memo(
             <div className="flex-1" />
             <kbd className="kbd" data-theme="light">
               space
+            </kbd>
+          </div>
+          <div className="flex gap-x-3 items-center">
+            <MapGLButton
+              icon={restartSearchIcon}
+              debug={true}
+              btnDebugText="Restart Callback Button"
+              onClick={restartSearchCallback}
+              disabled={state.startNode.id === -1 || state.endNode.id === -1}
+            />
+            <h3 className="font-medium text-[14px]">Restart Search</h3>
+            <div className="flex-1" />
+            <kbd className="kbd" data-theme="light">
+              R
+            </kbd>
+          </div>
+          <div className="flex gap-x-3 items-center">
+            <MapGLButton
+              icon={selectNewStartEndNodeIcon}
+              debug={true}
+              btnDebugText="Select New Start End Node Button"
+              onClick={setSelectNewStartEndNodeCallback}
+              disabled={state.startNode.id === -1 || state.endNode.id === -1}
+            />
+            <h3 className="font-medium text-[14px]">Select New Nodes</h3>
+            <div className="flex-1" />
+            <kbd className="kbd" data-theme="light">
+              S
             </kbd>
           </div>
         </div>

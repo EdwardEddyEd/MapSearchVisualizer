@@ -19,7 +19,7 @@ export async function fetchOSMRoads(
 ): Promise<Way[]> {
   if (latMax - latMin > BBOX_LIMIT || lonMax - lonMin > BBOX_LIMIT) {
     return Promise.reject(
-      "Bounding Box Range to large to query. Try zooming in before requesting roadways."
+      "Bounding Box Range too large to query. Try zooming in before requesting roadways."
     );
   }
 

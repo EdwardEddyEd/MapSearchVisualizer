@@ -2,25 +2,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { WayId, Graph, Node, NodeId } from "@classes/graph/GraphGL";
 import { haversine_distance } from "@utils/mapUtils";
 import { Heap } from "heap-js";
+import { toast } from "sonner";
 
-export type PrevConnection = {
+type PrevConnection = {
   nodeId: NodeId;
   connectingEdgeId: WayId;
 };
-
-/*
-  DIFFERENT SCORING METHODS:
-  Distance from Start + Distance from End
-  Number of edges travelled + Distance from End
-  Distance travelled thus far + Distance from End
-*/
 
 type FutureNode = {
   nodeId: NodeId;
   prevConnection: PrevConnection;
   edgeCount: number;
   distanceTravelled: number;
-  score: number; // Heuristic score: Number of edges + Distance from end
+  score: number;
 };
 
 type SearchState = {
@@ -32,15 +26,21 @@ type SearchState = {
 const minDistanceComparator = (a: FutureNode, b: FutureNode) =>
   a.score - b.score;
 
-export function useAStar(mapGraph: Graph, startNode: Node, endNode: Node) {
-  // References are used so that any changes to them during searching do not trigger a re-render.
-  const visited = useRef<Record<NodeId, PrevConnection>>({}); // Key = Node.id of visited vertex, Value = [Node.id of previous node, Way.id connecting them]
-  const visitedEdges = useRef<Record<WayId, number>>({}); // Key = Way.id of visited edge, Value = unix timestamp in seconds of visit; This is for rendering reasons only
+export type SearchType = "A*" | "BFS";
+
+export function useGraphSearch(
+  mapGraph: Graph,
+  startNode: Node,
+  endNode: Node,
+  searchType: SearchType
+) {
+  const visited = useRef<Record<NodeId, PrevConnection>>({});
+  const visitedEdges = useRef<Record<WayId, number>>({});
   const solution = useRef<WayId[]>([]);
-  const timeSolved = useRef<number>(-1); // Unix seconds of when a solution was reached
+  const timeSolved = useRef<number>(-1);
   const dequeue = useRef<Heap<FutureNode>>(
     new Heap<FutureNode>(minDistanceComparator)
-  ); // Key = Node.id of to-be-visited vertex, Value = [score, Node.id of previous node, Way.id connecting them]
+  );
 
   const [state, setState] = useState<SearchState>(() => ({
     visitedEdges: {},
@@ -48,7 +48,6 @@ export function useAStar(mapGraph: Graph, startNode: Node, endNode: Node) {
     timeSolved: -1,
   }));
 
-  // Update for when startNode and endNode are set or reset
   useEffect(() => {
     if (startNode.id === -1 || endNode.id === -1) {
       setState({ visitedEdges: {}, solution: [], timeSolved: -1 });
@@ -59,7 +58,6 @@ export function useAStar(mapGraph: Graph, startNode: Node, endNode: Node) {
       dequeue.current = new Heap<FutureNode>(minDistanceComparator);
       return;
     } else if (startNode.id !== -1 && endNode.id !== -1) {
-      // Initialize the minHeap when startNode and endNodes are set
       dequeue.current.clear();
       dequeue.current.init([
         {
@@ -72,12 +70,31 @@ export function useAStar(mapGraph: Graph, startNode: Node, endNode: Node) {
       ]);
       return;
     }
-    // Initialize BFS when startNode and endNode change
   }, [mapGraph, startNode, endNode]);
+
+  const restartSearch = useCallback(() => {
+    setState({ visitedEdges: {}, solution: [], timeSolved: -1 });
+
+    visited.current = {};
+    visitedEdges.current = {};
+    solution.current = [];
+    timeSolved.current = -1;
+
+    dequeue.current.clear();
+    dequeue.current.init([
+      {
+        nodeId: startNode.id,
+        prevConnection: { nodeId: -1, connectingEdgeId: -1 },
+        distanceTravelled: 0,
+        edgeCount: 0,
+        score: 0,
+      },
+    ]);
+  }, [startNode]);
 
   const iterate = useCallback(
     (steps: number) => {
-      if (startNode.id === -1 || endNode.id === -1) return; // Ignore invalid nodes
+      if (startNode.id === -1 || endNode.id === -1) return;
 
       for (let i = 0; i < steps; i++) step();
       setState(() => ({
@@ -86,59 +103,67 @@ export function useAStar(mapGraph: Graph, startNode: Node, endNode: Node) {
         timeSolved: timeSolved.current,
       }));
     },
-    [startNode, endNode]
+    [startNode, endNode, searchType]
   );
 
   const step = () => {
     if (dequeue.current.isEmpty() || solution.current.length > 0) return;
 
-    // Get the next node to visit and it's connecting edge
     const {
       nodeId: currNodeId,
-      prevConnection: prevConnection,
+      prevConnection,
       distanceTravelled,
       edgeCount,
     } = dequeue.current.pop()!;
 
-    // Have to color the edge just travelled
     visitedEdges.current[prevConnection.connectingEdgeId] = Date.now() / 1000;
 
-    // If the node has been visited, color the edge and leave
-    if (visited.current[currNodeId]) {
-      return;
-    }
+    if (visited.current[currNodeId]) return;
 
-    // Otherwise, add node to visited nodes
     visited.current[currNodeId] = prevConnection;
 
-    // If the currNode is the endNode, get the solution
     if (currNodeId === endNode.id) {
       getSolution(currNodeId);
+      toast.success("Path found!", { position: "top-center" });
       return;
     }
 
     const neighbors = mapGraph.getNeighborsFromId(currNodeId);
     for (const { neighbor, edge } of neighbors) {
       if (visited.current[neighbor.id] === undefined) {
-        const { lat: lat1, lng: lng1 } = mapGraph.vertices.get(currNodeId)!;
-        const { lat: lat2, lng: lng2 } = neighbor;
+        const { lat, lng } = mapGraph.vertices.get(currNodeId)!;
+        const { lat: latNeighbor, lng: lngNeighbor } = neighbor;
         const { lat: latEnd, lng: lngEnd } = endNode;
 
-        const edgeTravel = haversine_distance(lat1, lng1, lat2, lng2);
-        const distanceFromEnd = haversine_distance(lat1, lng1, latEnd, lngEnd);
+        const edgeTravel = haversine_distance(
+          lat,
+          lng,
+          latNeighbor,
+          lngNeighbor
+        );
+        const distanceFromEnd = haversine_distance(lat, lng, latEnd, lngEnd);
 
-        const score3 = distanceTravelled + edgeTravel + distanceFromEnd;
+        const newEdgeCount = (edgeCount || 0) + 1;
 
-        dequeue.current.add({
-          nodeId: neighbor.id,
-          prevConnection: {
-            nodeId: currNodeId,
-            connectingEdgeId: edge.id,
-          },
-          score: score3,
-          edgeCount: edgeCount + 1,
-          distanceTravelled: distanceTravelled + edgeTravel,
-        });
+        if (searchType === "A*") {
+          const score = distanceTravelled + edgeTravel + distanceFromEnd;
+          dequeue.current.add({
+            nodeId: neighbor.id,
+            prevConnection: { nodeId: currNodeId, connectingEdgeId: edge.id },
+            score,
+            edgeCount: newEdgeCount,
+            distanceTravelled: distanceTravelled + edgeTravel,
+          });
+        } else {
+          // For BFS, use edgeCount as score
+          dequeue.current.add({
+            nodeId: neighbor.id,
+            prevConnection: { nodeId: currNodeId, connectingEdgeId: edge.id },
+            score: newEdgeCount, // BFS score is just the edge count
+            edgeCount: newEdgeCount,
+            distanceTravelled: distanceTravelled + edgeTravel,
+          });
+        }
       }
     }
   };
@@ -147,7 +172,6 @@ export function useAStar(mapGraph: Graph, startNode: Node, endNode: Node) {
     const newSolution: WayId[] = [];
     let visitedNode = visited.current[nodeId];
 
-    // If the latest edge = the connecting edge, we've reached the last visitedNode in the path
     while (visitedNode.connectingEdgeId !== -1) {
       newSolution.push(visitedNode.connectingEdgeId);
       visitedNode = visited.current[visitedNode.nodeId];
@@ -160,5 +184,6 @@ export function useAStar(mapGraph: Graph, startNode: Node, endNode: Node) {
   return {
     state,
     iterate,
+    restartSearch,
   };
 }

@@ -7,7 +7,8 @@ import {
 } from "react";
 import { BASEMAP } from "@deck.gl/carto";
 
-import { Graph, Node } from "@classes/graph/GraphGL";
+import { Graph, Node, NullNode } from "@classes/graph/GraphGL";
+import { SearchType } from "@utils/searchGL/useGraphSearch";
 
 enum MapSearchActionType {
   TOGGLE_FULLSCREEN = "TOGGLE_FULLSCREEN",
@@ -20,6 +21,7 @@ enum MapSearchActionType {
   SET_END_NODE = "SET_END_NODE",
 
   SET_MAP_STYLE = "SET_MAP_STYLE",
+  SET_SEARCH_TYPE = "SET_SEARCH_TYPE",
   SET_STEPS_PER_FRAME = "SET_STEPS_PER_FRAME",
   SET_FPS = "SET_FPS",
 
@@ -40,6 +42,7 @@ type MapSearchAction =
   | { type: MapSearchActionType.SET_START_NODE; payload: Node }
   | { type: MapSearchActionType.SET_END_NODE; payload: Node }
   | { type: MapSearchActionType.SET_MAP_STYLE; payload: keyof typeof BASEMAP }
+  | { type: MapSearchActionType.SET_SEARCH_TYPE; payload: SearchType }
   | { type: MapSearchActionType.SET_STEPS_PER_FRAME; payload: number }
   | { type: MapSearchActionType.SET_FPS; payload: number }
   | { type: MapSearchActionType.RESTART_SEARCH }
@@ -55,6 +58,7 @@ type MapSearchState = {
   graph: Graph;
   startNode: Node;
   endNode: Node;
+  searchType: SearchType;
 
   mapStyle: keyof typeof BASEMAP;
 
@@ -71,10 +75,11 @@ const initialState: MapSearchState = {
   isLoadingGraph: false,
 
   graph: new Graph([]),
-  startNode: { id: -1, lng: 180, lat: -90 },
-  endNode: { id: -1, lng: 180, lat: -90 },
+  startNode: NullNode,
+  endNode: NullNode,
+  searchType: "A*",
 
-  mapStyle: "POSITRON",
+  mapStyle: "VOYAGER",
 
   stepsPerFrame: 10,
   fps: 120,
@@ -112,8 +117,19 @@ function MapSearchReducer(
       return { ...state, mapStyle: action.payload };
     case MapSearchActionType.SET_STEPS_PER_FRAME:
       return { ...state, stepsPerFrame: action.payload };
+    case MapSearchActionType.SET_SEARCH_TYPE:
+      return { ...state, searchType: action.payload };
     case MapSearchActionType.SET_FPS:
       return { ...state, fps: action.payload };
+    case MapSearchActionType.RESTART_SEARCH:
+      return { ...state, isPaused: true };
+    case MapSearchActionType.SELECT_NEW_START_END_NODES:
+      return {
+        ...state,
+        isPaused: true,
+        startNode: NullNode, // This is automatically trigger useGraphSearch to reset it's state
+        endNode: NullNode,
+      };
     default:
       return state;
   }

@@ -14,6 +14,7 @@ import {
   Map,
   useControl,
   NavigationControl,
+  GeolocateControl,
   MapRef,
 } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -23,7 +24,7 @@ import { MapGLFPSControl } from "./MapGLFPSControl";
 import { MapGLMemoryControl } from "./MapGLMemoryControl";
 
 import { fetchOSMRoads } from "@api/osmFetch";
-import { Graph, Way, Node } from "@classes/graph/GraphGL";
+import { Graph, Way, Node, NullNode } from "@classes/graph/GraphGL";
 import { Toaster, toast, Modal } from "@components";
 import { useAnimationLoop } from "@hooks/useAnimationLoop";
 
@@ -32,14 +33,13 @@ import {
   lerpColorToRGBArray,
   multiRGBArray,
 } from "@utils/colorUtils";
-import { useAStar } from "@utils/searchGL/useAStar";
-import { useBFS } from "@utils/searchGL/useBFS";
 import {
   MapSearchActionType,
   useMapSearchState,
 } from "@contexts/MapSearchContext";
 import { getPathWidth, getPointSize } from "@utils/mapUtils";
 import { MapGLControlPane } from "./MapGLControlPane";
+import { useGraphSearch } from "@utils/searchGL/useGraphSearch";
 
 const initialViewState = {
   latitude: 30.2672,
@@ -59,7 +59,18 @@ export function MapGL() {
   const mapRef = useRef<MapRef>(undefined);
   const [mapZoom, setMapZoom] = useState<number>(initialViewState.zoom);
   const { state, dispatch } = useMapSearchState();
+
   const fullscreenHandle = useFullScreenHandle();
+  const {
+    state: searchState,
+    iterate: searchIterate,
+    restartSearch,
+  } = useGraphSearch(
+    state.graph,
+    state.startNode,
+    state.endNode,
+    state.searchType
+  );
 
   const setGraphCallback = useCallback(async () => {
     if (mapRef.current) {
@@ -76,13 +87,15 @@ export function MapGL() {
             type: MapSearchActionType.GRAPH_LOADED,
             payload: {
               graph: new Graph(data),
-              startNode: { id: -1, lng: 0, lat: 0 },
-              endNode: { id: -1, lng: 0, lat: 0 },
+              startNode: NullNode,
+              endNode: NullNode,
             },
           });
-          toast.success("Map loaded", {
-            description: "Roadways have been added",
+          toast.success("Roadways loaded", {
+            description:
+              "Roadways have been added. Please select a start and end point for the map search",
             position: "top-center",
+            duration: 10000,
           });
         })
         .catch((error) => {
@@ -93,16 +106,17 @@ export function MapGL() {
           toast.error("Unable to load map", {
             description: error,
             position: "top-center",
+            duration: 10000,
           });
         });
     }
   }, [mapRef.current]);
 
-  const { state: searchState, iterate: searchIterate } = useAStar(
-    state.graph,
-    state.startNode,
-    state.endNode
-  );
+  const restartSearchCallback = useCallback(() => {
+    dispatch({ type: MapSearchActionType.RESTART_SEARCH });
+    restartSearch();
+    toast.info("Search has been restarted", { position: "top-center" });
+  }, [restartSearch]);
 
   const animationCallback = useCallback(() => {
     if (!state.isPaused) searchIterate(state.stepsPerFrame);
@@ -134,7 +148,9 @@ export function MapGL() {
                 payload: object,
               });
               toast.success("Starting point selected", {
+                description: "Please select another point as the end point.",
                 position: "top-center",
+                duration: 8000,
               });
             } else if (
               object &&
@@ -147,8 +163,9 @@ export function MapGL() {
               });
               toast.success("Ending point selected", {
                 description:
-                  "Searching between the start and end point is enabled",
+                  "Search is now enabled. Please press space to start search or select other configs from the control panel in the top left.",
                 position: "top-center",
+                duration: 12000,
               });
             }
           },
@@ -242,6 +259,23 @@ export function MapGL() {
     } else if (e.key === "m" || e.key === "M") {
       dispatch({ type: MapSearchActionType.TOGGLE_MAP_VISIBILITY });
     } else if (
+      (e.key === "r" || e.key === "R") &&
+      state.startNode.id !== -1 &&
+      state.endNode.id !== -1
+    ) {
+      restartSearchCallback();
+    } else if (
+      (e.key === "s" || e.key === "S") &&
+      state.startNode.id !== -1 &&
+      state.endNode.id !== -1
+    ) {
+      dispatch({ type: MapSearchActionType.SELECT_NEW_START_END_NODES });
+      toast.info("Start and End points were cleared", {
+        description: "Please select a start and end point for the map search",
+        position: "top-center",
+        duration: 10000,
+      });
+    } else if (
       e.key === " " &&
       state.startNode.id !== -1 &&
       state.endNode.id !== -1
@@ -283,8 +317,8 @@ export function MapGL() {
             parameters={{
               blend: true,
             }}
-            pickingRadius={10} // Optimize picking performance
-            controller={{ inertia: true }} // Smooth navigation
+            pickingRadius={10}
+            controller={{ inertia: true }} // Smoother navigation
           />
 
           {state.isStatsVisible && (
@@ -295,9 +329,11 @@ export function MapGL() {
           )}
 
           <NavigationControl />
+          <GeolocateControl />
 
           <MapGLControlPane
             fullscreenHandle={fullscreenHandle}
+            restartSearchCallback={restartSearchCallback}
             setGraphCallback={setGraphCallback}
           />
 
@@ -312,7 +348,7 @@ export function MapGL() {
             </div>
           </Modal>
 
-          <Toaster richColors />
+          <Toaster richColors position="top-center" closeButton />
         </Map>
       </FullScreen>
     </div>
