@@ -1,0 +1,25 @@
+.drawer-button {
+  transition: transform 0.2s ease-in-out;
+  transform: translateX(0px);
+}
+
+.drawer-content.open {
+  transform: translateX(0px);
+}
+
+.drawer-content {
+  overflow: hidden;
+  transition: transform 0.2s ease-in-out, opacity 0.2s ease;
+  transform: translateX(0px);
+  opacity: 0;
+}
+
+.drawer-content.open {
+  transform: translateX(0px);
+  opacity: 1;
+}
+
+.drawer-content.closed {
+  /* transform is calculated and set in MapGLDrawerController.tsx */
+  opacity: 0;
+} 

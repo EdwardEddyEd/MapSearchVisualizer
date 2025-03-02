@@ -11,6 +11,7 @@ enum MapSearchActionType {
   TOGGLE_FULLSCREEN = "TOGGLE_FULLSCREEN",
   TOGGLE_MAP_VISIBILITY = "TOGGLE_MAP_VISIBILITY",
   TOGGLE_PAUSE = "TOGGLE_PAUSE",
+  TOGGLE_STATS = "TOGGLE_STATS",
   SET_LOADING_GRAPH = "SET_LOADING_GRAPH",
   GRAPH_LOADED = "GRAPH_LOADED",
   SET_START_NODE = "SET_START_NODE",
@@ -25,6 +26,7 @@ type MapSearchAction =
   | { type: MapSearchActionType.TOGGLE_FULLSCREEN }
   | { type: MapSearchActionType.TOGGLE_MAP_VISIBILITY }
   | { type: MapSearchActionType.TOGGLE_PAUSE }
+  | { type: MapSearchActionType.TOGGLE_STATS }
   | { type: MapSearchActionType.SET_LOADING_GRAPH; payload: boolean }
   | {
       type: MapSearchActionType.GRAPH_LOADED;
@@ -39,6 +41,7 @@ type MapSearchState = {
   isFullscreen: boolean;
   isMapVisible: boolean;
   isPaused: boolean;
+  isStatsVisible: boolean;
   isLoadingGraph: boolean;
 
   graph: Graph;
@@ -54,6 +57,7 @@ const initialState: MapSearchState = {
   isFullscreen: false,
   isMapVisible: true,
   isPaused: true,
+  isStatsVisible: false,
   isLoadingGraph: false,
 
   graph: new Graph([]),
@@ -75,6 +79,8 @@ function MapSearchReducer(
       return { ...state, isMapVisible: !state.isMapVisible };
     case MapSearchActionType.TOGGLE_PAUSE:
       return { ...state, isPaused: !state.isPaused };
+    case MapSearchActionType.TOGGLE_STATS:
+      return { ...state, isStatsVisible: !state.isStatsVisible };
     case MapSearchActionType.SET_LOADING_GRAPH:
       return { ...state, isLoadingGraph: action.payload };
     case MapSearchActionType.GRAPH_LOADED:

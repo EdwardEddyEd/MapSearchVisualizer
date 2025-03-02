@@ -36,3 +36,23 @@ export function haversine_distance(
   var d = R * c;
   return d * 1000; // meters
 }
+
+/**
+ * Calculate the width of Paths on the map based on the map's zoom level
+ * @param mapZoom Number - Zoom level on the map
+ * @param scale Number - Scale to multiply on the normal calculated path width
+ * @returns Number - Path width
+ */
+export function getPathWidth(mapZoom: number, scale: number = 1) {
+  return Math.max(3, Math.min(30, 6 * (16 - mapZoom))) * scale;
+}
+
+/**
+ * Calculate the size of Points on the map based on the map's zoom level
+ * @param mapZoom Number - Zoom level on the map
+ * @param scale Number - Scale to multiply on the normal calculated points size
+ * @returns Number - Point size
+ */
+export function getPointSize(mapZoom: number, scale: number = 1) {
+  return Math.min(5, Math.abs(16 - mapZoom) + 4) * scale;
+}

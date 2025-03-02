@@ -1,8 +1,10 @@
+import { useEffect } from "react";
 import { modalIds } from "./modalIds";
 
 type ModalProps = {
   modalId: keyof typeof modalIds;
   children: React.ReactNode;
+  isOpen?: boolean; // If isOpen is set, the modal will open and close based on it's value automatically
   modalBoxStyle?: string;
   closeOnClickOutside?: boolean;
 };
@@ -16,9 +18,16 @@ const closeOnClickOutsideBackdrop = (
 export function Modal({
   modalId,
   children,
+  isOpen,
   modalBoxStyle,
   closeOnClickOutside = true,
 }: ModalProps) {
+  useEffect(() => {
+    if (isOpen !== undefined) {
+      isOpen ? openModal(modalId) : closeModal(modalId);
+    }
+  }, [modalId, isOpen]);
+
   return (
     <dialog id={modalId} className="modal ">
       <div

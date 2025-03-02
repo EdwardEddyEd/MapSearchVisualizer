@@ -17,32 +17,13 @@ import {
 } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 
-import {
-  Fullscreen as FullScreenIcon,
-  FullscreenExit,
-  PlayArrow,
-  Pause,
-  Public,
-  PublicOff,
-  AddRoad,
-} from "@mui/icons-material";
-
-import { MapGLButton } from "./MapGLButton";
 import { MapGLControlContainer } from "./MapGLControlContainer";
-import { MapGLDrawerController } from "./MapGLDrawerController";
 import { MapGLFPSControl } from "./MapGLFPSControl";
 import { MapGLMemoryControl } from "./MapGLMemoryControl";
 
 import { fetchOSMRoads } from "@api/osmFetch";
 import { Graph, Way, Node } from "@classes/graph/GraphGL";
-import {
-  Toaster,
-  toast,
-  Modal,
-  closeModal,
-  openModal,
-  Range,
-} from "@components";
+import { Toaster, toast, Modal } from "@components";
 import { useAnimationLoop } from "@hooks/useAnimationLoop";
 
 import {
@@ -56,6 +37,8 @@ import {
   MapSearchActionType,
   useMapSearchState,
 } from "@contexts/MapSearchContext";
+import { getPathWidth, getPointSize } from "@utils/mapUtils";
+import { MapGLControlPane } from "./MapGLControlPane";
 
 const initialViewState = {
   latitude: 30.2672,
@@ -75,44 +58,11 @@ export function MapGL() {
   const mapRef = useRef<MapRef>(undefined);
   const [mapZoom, setMapZoom] = useState<number>(initialViewState.zoom);
   const { state, dispatch } = useMapSearchState();
+  const fullscreenHandle = useFullScreenHandle();
 
-  // #region Map Container Button Memo
-  // Fullscreen Memo
-  const handle = useFullScreenHandle();
-  const fullscreenIcon = useMemo(
-    () => (handle.active ? <FullscreenExit /> : <FullScreenIcon />),
-    [handle.active]
-  );
-  const setFullscreenCallback = useCallback(
-    () => (handle.active ? handle.exit() : handle.enter()),
-    [handle.active]
-  );
-
-  // Map Visible Memo
-  const mapVisibleIcon = useMemo(
-    () => (state.isMapVisible ? <Public /> : <PublicOff />),
-    [state.isMapVisible]
-  );
-  const setMapVisibleCallback = useCallback(
-    () => dispatch({ type: MapSearchActionType.TOGGLE_MAP_VISIBILITY }),
-    []
-  );
-
-  // Pause Graph Search Memo
-  const pauseIcon = useMemo(
-    () => (state.isPaused ? <Pause /> : <PlayArrow />),
-    [state.isPaused]
-  );
-  const setPauseCallback = useCallback(
-    () => dispatch({ type: MapSearchActionType.TOGGLE_PAUSE }),
-    []
-  );
-
-  const addGraphIcon = useMemo(() => <AddRoad />, []);
   const setGraphCallback = useCallback(async () => {
     if (mapRef.current) {
       dispatch({ type: MapSearchActionType.SET_LOADING_GRAPH, payload: true });
-      openModal("loadingMapModal");
 
       fetchOSMRoads(
         mapRef.current.getBounds().getSouth(),
@@ -143,13 +93,9 @@ export function MapGL() {
             description: error,
             position: "top-center",
           });
-        })
-        .finally(() => {
-          closeModal("loadingMapModal");
         });
     }
-  }, []);
-  //#endregion
+  }, [mapRef.current]);
 
   const { state: searchState, iterate: searchIterate } = useAStar(
     state.graph,
@@ -165,14 +111,6 @@ export function MapGL() {
     paused: state.isPaused,
   });
 
-  const getWidth = (scale: number = 1) => {
-    return Math.max(3, Math.min(30, 6 * (16 - (mapZoom || 13)))) * scale;
-  };
-
-  const getPointSize = (scale: number = 1) => {
-    return Math.min(5, Math.abs(16 - mapZoom) + 4) * scale;
-  };
-
   const vertices = useMemo(() => state.graph.getAllVertices(), [state.graph]);
   const nodesLayer =
     state.startNode.id === -1 || state.endNode.id === -1
@@ -182,7 +120,7 @@ export function MapGL() {
           getColor: [255, 0, 0],
           opacity: 0.2,
           getPosition: (node) => [node.lng, node.lat, 0],
-          pointSize: getPointSize(),
+          pointSize: getPointSize(mapZoom),
           coordinateSystem: COORDINATE_SYSTEM.LNGLAT,
           pickable: true,
           updateTriggers: {
@@ -228,7 +166,7 @@ export function MapGL() {
       2
     ),
     getPosition: (node) => [node.lng, node.lat, 0],
-    pointSize: getPointSize(1.3),
+    pointSize: getPointSize(mapZoom, 1.3),
     coordinateSystem: COORDINATE_SYSTEM.LNGLAT,
     updateTriggers: {
       pointSize: [mapZoom],
@@ -243,7 +181,7 @@ export function MapGL() {
         getPath: (way) =>
           way.nodes.map((node) => [node.lng, node.lat]) as Position[],
         opacity: state.isMapVisible ? 0.2 : 1,
-        getWidth: getWidth(),
+        getWidth: getPathWidth(mapZoom),
         jointRounded: true,
         capRounded: true,
         getColor: (way) =>
@@ -274,7 +212,7 @@ export function MapGL() {
           data: solutionEdges,
           getPath: (way) =>
             way.nodes.map((node) => [node.lng, node.lat]) as Position[],
-          getWidth: getWidth(1.5),
+          getWidth: getPathWidth(mapZoom, 1.5),
           jointRounded: true,
           capRounded: true,
           getColor: (way) =>
@@ -294,7 +232,14 @@ export function MapGL() {
 
   const handleKeyDown = (e: any) => {
     if (e.key === "f" || e.key === "F") {
-      handle.active ? handle.exit() : handle.enter();
+      state.isFullscreen ? fullscreenHandle.exit() : fullscreenHandle.enter();
+      dispatch({ type: MapSearchActionType.TOGGLE_FULLSCREEN });
+    } else if ((e.key === "g" || e.key === "G") && !state.isLoadingGraph) {
+      setGraphCallback();
+    } else if (e.key === "h" || e.key === "H") {
+      dispatch({ type: MapSearchActionType.TOGGLE_STATS });
+    } else if (e.key === "m" || e.key === "M") {
+      dispatch({ type: MapSearchActionType.TOGGLE_MAP_VISIBILITY });
     } else if (
       e.key === " " &&
       state.startNode.id !== -1 &&
@@ -302,14 +247,19 @@ export function MapGL() {
     ) {
       e.preventDefault();
       dispatch({ type: MapSearchActionType.TOGGLE_PAUSE });
-    } else if (e.key === "h" || e.key === "H") {
-      dispatch({ type: MapSearchActionType.TOGGLE_MAP_VISIBILITY });
     }
   };
 
   return (
     <div className="mx-10 my-5" onKeyDown={handleKeyDown}>
-      <FullScreen handle={handle}>
+      <FullScreen
+        handle={fullscreenHandle}
+        onChange={(isFull) => {
+          // This handles the "escape" key change
+          if (isFull !== state.isFullscreen)
+            dispatch({ type: MapSearchActionType.TOGGLE_FULLSCREEN });
+        }}
+      >
         <Map
           ref={(ref: MapRef | null) => {
             if (ref) {
@@ -317,7 +267,7 @@ export function MapGL() {
             }
           }}
           style={{
-            height: handle.active ? "100%" : "608px",
+            height: state.isFullscreen ? "100%" : "608px",
             backgroundColor: "#14060E",
             borderRadius: 10,
           }}
@@ -339,98 +289,26 @@ export function MapGL() {
             pickingRadius={10} // Optimize picking performance
             controller={{ inertia: true }} // Smooth navigation
           />
-          <MapGLControlContainer position="top-left">
-            <div className="flex flex-col m-2 gap-2">
-              <MapGLButton
-                icon={fullscreenIcon}
-                debug={true}
-                btnDebugText="FULL SCREEN BUTTON"
-                tooltip={
-                  handle.active ? "Exit Fullscreen (F)" : "Enter Fullscreen (F)"
-                }
-                tooltipPosition="right"
-                onClick={setFullscreenCallback}
-              />
-              <MapGLButton
-                onClick={setMapVisibleCallback}
-                icon={mapVisibleIcon}
-                debug={true}
-                btnDebugText="Map Vislble BTN"
-                tooltip={state.isMapVisible ? "Hide map (H)" : "Show map (H)"}
-                tooltipPosition="right"
-              />
-              <MapGLButton
-                onClick={setGraphCallback}
-                icon={addGraphIcon}
-                tooltip="Get Roadways"
-                tooltipPosition="right"
-                disabled={state.isLoadingGraph}
-              />
-              {state.startNode.id !== -1 && state.endNode.id !== -1 && (
-                <MapGLButton
-                  icon={pauseIcon}
-                  tooltip={
-                    state.isPaused
-                      ? "Play Search (space)"
-                      : "Pause Search (space)"
-                  }
-                  debug={true}
-                  btnDebugText="PAYL BTTN"
-                  tooltipPosition="right"
-                  onClick={setPauseCallback}
-                />
-              )}
-            </div>
-          </MapGLControlContainer>
 
-          <MapGLControlContainer position="bottom-left">
-            <MapGLFPSControl newTime={Date.now()} />
-            <MapGLMemoryControl />
-          </MapGLControlContainer>
+          {state.isStatsVisible && (
+            <MapGLControlContainer position="bottom-left">
+              <MapGLFPSControl newTime={Date.now()} />
+              <MapGLMemoryControl />
+            </MapGLControlContainer>
+          )}
 
           <NavigationControl />
 
-          <MapGLDrawerController>
-            <div className="flex flex-col gap-y-3 m-2">
-              <div>
-                <h3 className="font-medium italic">
-                  Steps per Frame:{" "}
-                  <span className="font-normal">{state.stepsPerFrame}</span>
-                </h3>
-                <Range
-                  value={state.stepsPerFrame}
-                  min={1}
-                  max={30}
-                  step={1}
-                  onChange={(val) =>
-                    dispatch({
-                      type: MapSearchActionType.SET_STEPS_PER_FRAME,
-                      payload: val,
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <h3 className="font-medium italic">
-                  Max FPS: <span className="font-normal">{state.fps}</span>
-                </h3>
-                <Range
-                  value={state.fps}
-                  min={1}
-                  max={240}
-                  step={1}
-                  onChange={(val) =>
-                    dispatch({
-                      type: MapSearchActionType.SET_FPS,
-                      payload: val,
-                    })
-                  }
-                />
-              </div>
-            </div>
-          </MapGLDrawerController>
+          <MapGLControlPane
+            fullscreenHandle={fullscreenHandle}
+            setGraphCallback={setGraphCallback}
+          />
 
-          <Modal modalId="loadingMapModal" closeOnClickOutside={false}>
+          <Modal
+            modalId="loadingMapModal"
+            closeOnClickOutside={false}
+            isOpen={state.isLoadingGraph}
+          >
             <div className="flex justify-center items-center gap-x-5">
               <span className="loading loading-spinner loading-lg" />
               <p className="font-medium text-xl">Fetching Roadways...</p>
