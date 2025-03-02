@@ -1,6 +1,6 @@
-import * as React from "react";
 import { Link, Outlet, createRootRoute } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
+import { ThemeToggle } from "@components/ThemeToggle/ThemeToggle";
 
 export const Route = createRootRoute({
   component: RootComponent,
@@ -44,10 +44,12 @@ function RootComponent() {
         >
           MapGL
         </Link>
+        <div className="flex-1" />
+        <ThemeToggle />
       </div>
       <hr />
       <Outlet />
-      <TanStackRouterDevtools position="bottom-right" />
+      {/* <TanStackRouterDevtools position="bottom-right" /> */}
     </>
   );
 }
