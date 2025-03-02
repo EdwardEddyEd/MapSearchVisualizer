@@ -3,8 +3,10 @@ import {
   MapSearchActionType,
   useMapSearchState,
 } from "@contexts/MapSearchContext";
+import { BASEMAP } from "@deck.gl/carto";
+
 import { MapGLLeftDrawer } from "./MapGLLeftDrawer/MapGLLeftDrawer";
-import { Range } from "@components";
+import { Range, Select } from "@components";
 import { useCallback, useMemo } from "react";
 
 import {
@@ -69,6 +71,14 @@ export const MapGLControlPane = React.memo(
       []
     );
 
+    const setMapStyleCallback = useCallback((value: string | number) => {
+      const payload = value as keyof typeof BASEMAP;
+      dispatch({
+        type: MapSearchActionType.SET_MAP_STYLE,
+        payload,
+      });
+    }, []);
+
     const addGraphIcon = useMemo(() => <AddRoad />, []);
 
     return (
@@ -127,6 +137,19 @@ export const MapGLControlPane = React.memo(
             <kbd className="kbd" data-theme="light">
               M
             </kbd>
+          </div>
+
+          <div className="flex flex-col gap-y">
+            <h3 className="font-medium italic">Map Style</h3>
+            <Select
+              defaultValue="Pick a map style"
+              onChange={setMapStyleCallback}
+              value={state.mapStyle}
+              items={Object.keys(BASEMAP).map((key) => ({
+                key,
+                value: key,
+              }))}
+            />
           </div>
 
           <hr />

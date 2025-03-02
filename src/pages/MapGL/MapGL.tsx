@@ -7,6 +7,7 @@ import {
   DeckProps,
   PickingInfo,
 } from "@deck.gl/core";
+import { BASEMAP } from "@deck.gl/carto";
 import { PointCloudLayer, PathLayer } from "@deck.gl/layers";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import {
@@ -180,7 +181,7 @@ export function MapGL() {
         data: edges,
         getPath: (way) =>
           way.nodes.map((node) => [node.lng, node.lat]) as Position[],
-        opacity: state.isMapVisible ? 0.2 : 1,
+        opacity: state.isMapVisible ? 0.5 : 1,
         getWidth: getPathWidth(mapZoom),
         jointRounded: true,
         capRounded: true,
@@ -275,11 +276,7 @@ export function MapGL() {
           rollEnabled={false}
           initialViewState={initialViewState}
           onZoom={(e) => setMapZoom(e.target.getZoom())}
-          mapStyle={
-            state.isMapVisible
-              ? "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
-              : undefined
-          }
+          mapStyle={state.isMapVisible ? BASEMAP[state.mapStyle] : undefined}
         >
           <DeckGLOverlay
             layers={[roadLayer, nodesLayer, solutionLayer, startEndNodesLayer]}

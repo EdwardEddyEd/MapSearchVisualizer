@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 @plugin "daisyui" {
-  include: tooltip, modal, loading, range, kbd;
+  include: tooltip, modal, loading, range, kbd, select;
 }
 @custom-variant dark (&:where(.dark, .dark *));
 

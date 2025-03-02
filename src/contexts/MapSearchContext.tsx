@@ -1,4 +1,3 @@
-import { Graph, Node } from "@classes/graph/GraphGL";
 import {
   createContext,
   useReducer,
@@ -6,6 +5,9 @@ import {
   ReactNode,
   Dispatch,
 } from "react";
+import { BASEMAP } from "@deck.gl/carto";
+
+import { Graph, Node } from "@classes/graph/GraphGL";
 
 enum MapSearchActionType {
   TOGGLE_FULLSCREEN = "TOGGLE_FULLSCREEN",
@@ -17,11 +19,14 @@ enum MapSearchActionType {
   SET_START_NODE = "SET_START_NODE",
   SET_END_NODE = "SET_END_NODE",
 
+  SET_MAP_STYLE = "SET_MAP_STYLE",
   SET_STEPS_PER_FRAME = "SET_STEPS_PER_FRAME",
   SET_FPS = "SET_FPS",
+
+  RESTART_SEARCH = "RESTART_SEARCH",
+  SELECT_NEW_START_END_NODES = "SELECT_NEW_START_END_NODES",
 }
 
-// Define action types
 type MapSearchAction =
   | { type: MapSearchActionType.TOGGLE_FULLSCREEN }
   | { type: MapSearchActionType.TOGGLE_MAP_VISIBILITY }
@@ -34,8 +39,11 @@ type MapSearchAction =
     }
   | { type: MapSearchActionType.SET_START_NODE; payload: Node }
   | { type: MapSearchActionType.SET_END_NODE; payload: Node }
+  | { type: MapSearchActionType.SET_MAP_STYLE; payload: keyof typeof BASEMAP }
   | { type: MapSearchActionType.SET_STEPS_PER_FRAME; payload: number }
-  | { type: MapSearchActionType.SET_FPS; payload: number };
+  | { type: MapSearchActionType.SET_FPS; payload: number }
+  | { type: MapSearchActionType.RESTART_SEARCH }
+  | { type: MapSearchActionType.SELECT_NEW_START_END_NODES };
 
 type MapSearchState = {
   isFullscreen: boolean;
@@ -47,6 +55,8 @@ type MapSearchState = {
   graph: Graph;
   startNode: Node;
   endNode: Node;
+
+  mapStyle: keyof typeof BASEMAP;
 
   stepsPerFrame: number;
   fps: number;
@@ -63,6 +73,8 @@ const initialState: MapSearchState = {
   graph: new Graph([]),
   startNode: { id: -1, lng: 180, lat: -90 },
   endNode: { id: -1, lng: 180, lat: -90 },
+
+  mapStyle: "POSITRON",
 
   stepsPerFrame: 10,
   fps: 120,
@@ -87,6 +99,7 @@ function MapSearchReducer(
       return {
         ...state,
         isLoadingGraph: false,
+        isPaused: true,
         graph: action.payload.graph,
         startNode: action.payload.startNode,
         endNode: action.payload.endNode,
@@ -95,6 +108,8 @@ function MapSearchReducer(
       return { ...state, startNode: action.payload };
     case MapSearchActionType.SET_END_NODE:
       return { ...state, endNode: action.payload };
+    case MapSearchActionType.SET_MAP_STYLE:
+      return { ...state, mapStyle: action.payload };
     case MapSearchActionType.SET_STEPS_PER_FRAME:
       return { ...state, stepsPerFrame: action.payload };
     case MapSearchActionType.SET_FPS:
